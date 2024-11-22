@@ -1,12 +1,25 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-import joblib  # For loading the model
-
-# Load the model
-model = joblib.load('randomforest_model.pkl')
+from pydantic import BaseModel, Field
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+import joblib
+import math
 
 # Initialize the FastAPI app
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# Load the model
+model = joblib.load('randomforest_model.pkl')
+
+
+
 
 # Define a root endpoint
 @app.get("/")
@@ -35,7 +48,7 @@ class ModelInput(BaseModel):
     years_since_last_promotion: float = Field(..., ge=0, le=15)
     years_with_curr_manager: float = Field(..., ge=0, le=17)
     job_level: float = Field(..., ge=1, le=5)
-    monthly_income: float = Field(..., ge=0, le=19999)
+    monthly_income: float = Field(..., ge=0, le=20000)
 
 # Define the prediction endpoint
 @app.post("/predict")
@@ -55,9 +68,8 @@ async def predict(input_data: ModelInput):
     prediction = model.predict(features)
     
     # Return the prediction as a response
-    return {"They will likely spend ": prediction[0]}
+    return {"They will likely spend ": math.ceil(prediction[0])}
 
 # Add this to run the server locally using Uvicorn
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run("modelapi:app", host="127.0.0.1", port=8000, reload=True)
